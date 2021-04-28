@@ -1,0 +1,63 @@
+{
+    "name": "darkghosthunter/laradate",
+    "description": "Route bind a date into a Carbon (or anything you want)",
+    "keywords": [
+        "darkghosthunter",
+        "laralerts",
+        "alerts",
+        "notifications",
+        "flash",
+        "session",
+        "laravel"
+    ],
+    "homepage": "https://github.com/darkghosthunter/laralerts",
+    "license": "MIT",
+    "type": "library",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Italo Israel Baeza Cabrera",
+            "email": "darkghosthunter@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^7.4||^8.0",
+        "ext-json": "*",
+        "illuminate/support": "^8.0",
+        "illuminate/routing": "^8.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^6.17",
+        "mockery/mockery": "^1.4.2",
+        "phpunit/phpunit": "^9.5.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "DarkGhostHunter\\Laradate\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit --coverage-clover build/logs/clover.xml",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DarkGhostHunter\\Laralerts\\LaralertsServiceProvider"
+            ],
+            "aliases": {
+                "Alert": "DarkGhostHunter\\Laralerts\\Facades\\Alert"
+            }
+        }
+    }
+}
