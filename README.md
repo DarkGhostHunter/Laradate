@@ -8,8 +8,8 @@ Parse a date from the URL, receive it as a `Carbon` instance in your controller.
 
 ## Requirements
 
-* Laravel 7.x or later
-* PHP 7.4 or later.
+* Laravel 8.x or later
+* PHP 7.4, 8.0 or later.
 
 > For older versions support, consider helping by sponsoring or donating.
 
