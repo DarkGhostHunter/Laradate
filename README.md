@@ -9,7 +9,7 @@ Parse a date from the URL, receive it as a `Carbon` instance in your controller.
 ## Requirements
 
 * Laravel 8.x or later
-* PHP 7.4, 8.0 or later.
+* PHP 8.0 or later.
 
 > For older versions support, consider helping by sponsoring or donating.
 
@@ -23,81 +23,52 @@ composer require darkghosthunter/laradate
 
 ## Usage
 
-Simply set the `datetime` to any route. In your controller, you will get a `Carbon` instance if the name of the variable is `$datetime`. 
+Simply set the `date` parameter to any route. In your controller, you will get a `Carbon` instance if the name of the variable is `$date`.
 
 ```php
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Carbon;
 
-Route::get('matches/{datetime}', function (Carbon $datetime) {
-    return $datetime;
+Route::get('matches/{date}', function (Carbon $date) {
+    return $date;
 });
 ```
 
-```http request
-GET http://myapp.com/matches/1992-01-01%2016%3A30%3A45
-```
+> A date must be formatted as `YYYY-MM-DD` to reach the route, otherwise it won't be found.
 
-```http request
-GET http://myapp.com/matches/today
-```
-
-Behind the scenes, Laradate will use the `DateFactory`, which is the default factory in your application, to create instances of `DateTimeInterface`. By default, your application uses Carbon.
+Behind the scenes, Laradate will use the `DateFactory`, which is the default factory in your application, to create instances of `DateTimeInterface`. By default, your application uses the Carbon library.
 
 > If the datetime cannot be parsed, the route will return HTTP 404.
 
 ### Using formats
 
-You can also use custom formatting for your routes with `{datetime:format}`. The format follows the same [Datetime formats](https://php.net/manual/datetime.createfromformat.php). If the string doesn't follow the format, the route will return an HTTP 404.
+You can also use custom formatting for your routes with `{date:format}`. The format follows the same [Datetime formats](https://php.net/manual/datetime.createfromformat.php). If the string doesn't follow the format, the route will return an HTTP 404.
 
 ```php
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Carbon;
 
-Route::get('birthdays/{datetime:Y_m_d}', function (Carbon $datetime) {
+// birthdays/2015_07_04
+Route::get('birthdays/{date:Y_m_d}', function (Carbon $datetime) {
     return $datetime;
 });
 ```
 
 > Because of limitations of Laravel Router parameters for bindings, use underscore `_` as separator while using formats.
 
-### Using dates
+### Date between middleware
 
-If you use a format, the datetime parser will default the date to the actual time of the day instead of the beginning of it.
+To avoid having to fallback to the Laravel Validator inside the controller, you can use the `date` middleware which accepts a minimum, maximum, or both, dates to compare (inclusive). If the date is not inside the dates, an HTTP 404 code will be returned.
 
-To avoid this, you can use the `date` binding, which works the same as `datetime`, but it will forcefully move the time to the beginning of the day, even if the format includes time.
-
-```php
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Carbon;
-
-Route::get('matches/{date}', function (Carbon $datetime) {
-    return $datetime;
-});
-
-Route::get('birthdays/{date:Y_m_d}', function (Carbon $datetime) {
-    return $datetime;
-});
-```
-
-```http request
-GET http://myapp.com/matches/now
-```
-```http request
-GET http://myapp.com/birthdays/2020_01_01
-```
-
-### Further validation
-
-The datetime binding doesn't support validation to dynamically check if the date should be inside/outside bounds, like "after today" or "between hours". In that case, you submit a form and [validate the request](https://laravel.com/docs/validation#available-validation-rules).
+Since the dates are passed to `DateTime`, you can use words like `today 00:00` or `3 months 23:59:59` for relative dates.
 
 ```php
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::post('birthdays', function (Request $request) {
-    $request->validate(['date' => 'required|date_format:Y-m-d|before_or_equal:today']);
-});
+Route::post('birthdays/{date}', function (Request $request, Carbon $date) {
+    // ...
+})->middleware('date:today 00:00,3 months 23:59:59');
 ```
 
 ## Security

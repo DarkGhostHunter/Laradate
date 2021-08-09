@@ -2,135 +2,139 @@
 
 namespace Tests;
 
-use Carbon\Carbon as BaseCarbon;
-use DateTime;
+use DarkGhostHunter\Laradate\LaradateServiceProvider;
 use DateTimeInterface;
-use Illuminate\Routing\Router;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Route;
 use Orchestra\Testbench\TestCase;
 
 class TestRouteBindsDatetimeTest extends TestCase
 {
-    use RegistersPackage;
-
-    protected Router $router;
-
-    protected function setUp(): void
+    protected function getPackageProviders($app): array
     {
-        $this->afterApplicationCreated(function () {
-            $this->router = $this->app['router'];
-        });
-
-        parent::setUp();
+        return [LaradateServiceProvider::class];
     }
 
-    public function test_route_datetime_parses_datetime(): void
+    public function test_registers_package(): void
     {
-        $this->travelTo($day = Carbon::create(2020, 01, 31, 16, 45, 30));
-
-        $this->router->get('test/{datetime}/foo', function ($datetime) {
-            return $datetime;
-        })->middleware('bindings');
-
-        $this->get('test/20190101/foo')->assertSee('2019-01-01T00:00:00.000000Z');
-        $this->get('test/20190101163045/foo')->assertSee('2019-01-01T16:30:45.000000Z');
-        $this->get('test/2019-01-01/foo')->assertSee('2019-01-01T00:00:00.000000Z');
-        $this->get('test/2019-01-01 16:30:45/foo')->assertSee('2019-01-01T16:30:45.000000Z');
-        $this->get('test/2019-01-01 16:30:45/foo')->assertSee('2019-01-01T16:30:45.000000Z');
-        $this->get('test/now/foo')->assertSee($day->toJSON());
-        $this->get('test/today/foo')->assertSee($day->startOfDay()->toJSON());
-        $this->get('test/yesterday/foo')->assertSee($day->subDay()->toJSON());
-        $this->get('test/next month/foo')->assertSee($day->addMonth()->toJSON());
+        static::assertArrayHasKey(LaradateServiceProvider::class, $this->app->getLoadedProviders());
     }
 
-    public function test_route_datetime_with_base_carbon(): void
+    public function test_route_date_default_format(): void
     {
-        $this->router->get('test/{datetime}/foo', function (BaseCarbon $datetime) {
-            return $datetime;
+        $this->travelTo(Carbon::create(2020, 01, 31, 16, 45, 30));
+
+        Route::get('test/{date}/foo', function (Request $request, $date) {
+            return $date;
         })->middleware('bindings');
 
-        $this->get('test/2019-01-01/foo')->assertSee('2019-01-01T00:00:00.000000Z');
-    }
-
-    public function test_route_datetime_with_carbon(): void
-    {
-        $this->router->get('test/{datetime}/foo', function (Carbon $datetime) {
-            return $datetime;
-        })->middleware('bindings');
-
-        $this->get('test/2019-01-01/foo')->assertSee('2019-01-01T00:00:00.000000Z');
-    }
-
-    public function test_route_datetime_with_datetime_interface(): void
-    {
-        $this->router->get('test/{datetime}/foo', function (DateTimeInterface $datetime) {
-            static::assertInstanceOf(Carbon::class, $datetime);
-            return $datetime;
-        })->middleware('bindings');
-
-        $this->get('test/2019-01-01/foo')->assertSee('2019-01-01T00:00:00.000000Z');
-    }
-
-    public function test_route_datetime_with_datetime(): void
-    {
-        $this->router->get('test/{datetime}/foo', function (DateTime $datetime) {
-            static::assertInstanceOf(Carbon::class, $datetime);
-            return $datetime;
-        })->middleware('bindings');
-
-        $this->get('test/2019-01-01/foo')->assertSee('2019-01-01T00:00:00.000000Z');
-    }
-
-    public function test_route_datetime_not_found_with_invalid_date(): void
-    {
-        $this->router->get('test/{datetime}/foo', function ($datetime) {
-            return $datetime;
-        })->middleware('bindings');
-
+        $this->get('test/2019-02-03/foo')->assertSee('2019-02-03T00:00:00.000000Z');
         $this->get('test/invalid/foo')->assertNotFound();
     }
 
-    public function test_route_datetime_with_format(): void
+    public function test_route_date_custom_format(): void
     {
-        $this->travelTo(now()->setTime(19, 30));
+        $this->travelTo(Carbon::create(2020, 01, 31, 16, 45, 30));
 
-        $this->router->get('test/{datetime:Y_m_d}/foo', function (DateTime $datetime) {
-            return $datetime;
+        Route::get('test/{date:YmdHis}/foo', function ($date) {
+            return $date;
         })->middleware('bindings');
 
-        $this->get('test/2019_01_01/foo')->assertSee('2019-01-01T19:30:00.000000Z');
+        $this->get('test/20190203173000/foo')->assertSee('2019-02-03T17:30:00.000000Z');
+        $this->get('test/20190203/foo')->assertNotFound();
+        $this->get('test/2019-02-03/foo')->assertNotFound();
+        $this->get('test/invalid/foo')->assertNotFound();
     }
 
-    public function test_route_datetime_not_found_with_invalid_format(): void
+    public function test_route_uses_carbon(): void
     {
-        $this->travelTo(now()->setTime(19, 30));
+        $assert = function ($object) {
+            static::assertInstanceOf(Carbon::class, $object);
+        };
 
-        $this->router->get('test/{datetime:asdasd}/foo', function (DateTime $datetime) {
-            return $datetime;
+        Route::get('test/{date}/foo', function (Carbon $date) use ($assert) {
+            $assert($date);
+            return $date;
         })->middleware('bindings');
 
-        $this->get('test/2019_01_01/foo')->assertNotFound();
+        $this->get('test/2019-02-03/foo')->assertSee('2019-02-03T00:00:00.000000Z');
     }
 
-    public function test_route_date_defaults_to_beginning_of_day(): void
+    public function test_route_uses_datetime_interface(): void
     {
-        $this->travelTo(now()->setTime(19, 30));
+        $assert = function ($object) {
+            static::assertInstanceOf(DateTimeInterface::class, $object);
+        };
 
-        $this->router->get('test/{date}/foo', function (DateTime $datetime) {
-            return $datetime;
+        Route::get('test/{date}/foo', function (DateTimeInterface $date) use ($assert) {
+            $assert($date);
+            return $date;
         })->middleware('bindings');
 
-        $this->get('test/2019-01-01/foo')->assertSee('2019-01-01T00:00:00.000000Z');
+        $this->get('test/2019-02-03/foo')->assertSee('2019-02-03T00:00:00.000000Z');
     }
 
-    public function test_route_date_with_format_defaults_to_beginning_of_day(): void
+    public function test_route_between_two_dates(): void
     {
-        $this->travelTo(now()->setTime(19, 30));
+        Route::get('test/{date}/foo', function (DateTimeInterface $date) {
+            return $date;
+        })->middleware('bindings', 'date:yesterday,tomorrow');
 
-        $this->router->get('test/{date:Y_m_d}/foo', function (DateTime $datetime) {
-            return $datetime;
-        })->middleware('bindings');
+        $this->get('test/' . now()->format('Y-m-d') . '/foo')->assertOk();
+        $this->get('test/' . Carbon::parse('-2 days')->format('Y-m-d') . '/foo')->assertNotFound();
+        $this->get('test/' . Carbon::parse('2 days')->format('Y-m-d') . '/foo')->assertNotFound();
+    }
 
-        $this->get('test/2019_01_01/foo')->assertSee('2019-01-01T00:00:00.000000Z');
+    public function test_route_between_or_equal_two_dates(): void
+    {
+        Route::get('test/{date}/foo', function (DateTimeInterface $date) {
+            return $date;
+        })->middleware('bindings', 'date:yesterday,tomorrow');
+
+        $this->get('test/' . Carbon::parse('yesterday')->format('Y-m-d') . '/foo')->assertOk();
+        $this->get('test/' . Carbon::parse('tomorrow')->format('Y-m-d') . '/foo')->assertOk();
+    }
+
+    public function test_route_between_or_equal_two_dates_with_spaces(): void
+    {
+        Route::get('test/{date}/foo', function (DateTimeInterface $date) {
+            return $date;
+        })->middleware('bindings', 'date:-3 months 00:00,3 months 00:00');
+
+        $this->get('test/' . Carbon::parse('-3 months')->format('Y-m-d') . '/foo')->assertOk();
+        $this->get('test/' . Carbon::parse('3 months')->format('Y-m-d') . '/foo')->assertOk();
+
+        $this->get('test/' . Carbon::parse('-4 months')->format('Y-m-d') . '/foo')->assertNotFound();
+        $this->get('test/' . Carbon::parse('4 months')->format('Y-m-d') . '/foo')->assertNotFound();
+    }
+
+    public function test_route_after_date(): void
+    {
+        Route::get('test/{date}/foo', function (DateTimeInterface $date) {
+            return $date;
+        })->middleware('bindings', 'date:yesterday');
+
+        $this->get('test/' . Carbon::parse('yesterday')->format('Y-m-d') . '/foo')->assertOk();
+        $this->get('test/' . Carbon::parse('yesterday - 1 second')->format('Y-m-d') . '/foo')->assertNotFound();
+    }
+
+    public function test_route_before_date(): void
+    {
+        Route::get('test/{date}/foo', function (DateTimeInterface $date) {
+            return $date;
+        })->middleware('bindings', 'date:,tomorrow');
+
+        $this->get('test/' . Carbon::parse('tomorrow')->format('Y-m-d') . '/foo')->assertOk();
+        $this->get('test/' . Carbon::parse('2 days 00:00')->format('Y-m-d') . '/foo')->assertNotFound();
+    }
+
+    public function test_exception_if_no_min_max(): void
+    {
+        Route::get('test/{date}/foo', function (DateTimeInterface $date) {
+            return $date;
+        })->middleware('bindings', 'date:');
+
+        $this->get('test/' . now()->format('Y-m-d') . '/foo')->assertStatus(500);
     }
 }
