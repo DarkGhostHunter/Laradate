@@ -49,8 +49,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Carbon;
 
 // birthdays/2015_07_04
-Route::get('birthdays/{date:Y_m_d}', function (Carbon $datetime) {
-    return $datetime;
+Route::get('birthdays/{date:Y_m_d}', function (Carbon $date) {
+    return $date;
 });
 ```
 
