@@ -55,11 +55,8 @@
     "extra": {
         "laravel": {
             "providers": [
-                "DarkGhostHunter\\Laralerts\\LaralertsServiceProvider"
-            ],
-            "aliases": {
-                "Alert": "DarkGhostHunter\\Laralerts\\Facades\\Alert"
-            }
+                "DarkGhostHunter\\Laradate\\LaradateServiceProvider"
+            ]
         }
     }
 }
